@@ -1,6 +1,9 @@
 from fastapi import FastAPI
 import uvicorn
 
+# Instalar dependencias dentro del environment
+# uv add fastapi httpx requests sqlmodel uvicorn
+
 app = FastAPI(
     title="Hola FASTAPI",
     description="Primer contacto con FASTAPI",

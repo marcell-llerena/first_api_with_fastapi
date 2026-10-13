@@ -58,7 +58,7 @@ class ViviendaUpdate(BaseModel):
         min_length=2,
         max_length=50
     )
-    area_m2: Optional[str] = Field(None, gt=0)
+    area_m2: Optional[float] = Field(None, gt=0)
     habitaciones: Optional[int] = Field(None, ge=1, le=20)
     banios: Optional[int] = Field(None, ge=1, le=20)
     precio: Optional[float] = Field(None, gt=0)
@@ -97,11 +97,26 @@ def listar_viviendas(
     resultado = list(db.values())
     if distrito:
         resultado = [
-            v for v in resultado
+            v
+            for v in resultado
             if v.distrito.lower() == distrito.lower()
         ]
 
     return resultado
+
+@app.get(
+    "/viviendas/{vivienda_id}",
+    response_model=ViviendaRead,
+    tags=["viviendas"]
+)
+def obtener_vivienda(vivienda_id: int):
+    vivienda = db.get(vivienda_id)
+    if vivienda is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Vivienda {vivienda_id} no encontrada"
+        )
+    return vivienda
 
 # ------UPDATE total (PUT)------------
 @app.put(
@@ -116,6 +131,43 @@ def reemplazar_vivienda(
     vivienda = ViviendaRead(id=vivienda_id, **datos.model_dump())
     db[vivienda_id] = vivienda
     return vivienda
+
+# ------UPDATE parcial (PUT)------------
+# Solo los campos que queramos cambiar
+@app.patch(
+    "/viviendas/{vivienda_id}",
+    response_model=ViviendaRead,
+    tags=["viviendas"]
+)
+def actualizar_vivienda(vivienda_id: int, datos: ViviendaUpdate):
+    vivienda = db.get(vivienda_id)
+    if vivienda is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Vivienda {vivienda_id} no encontrada"
+        )
+    cambios = datos.model_dump(exclude_unset=True)
+    actualizada = vivienda.model_copy(update=cambios)
+    db[vivienda_id] = actualizada
+    return actualizada
+
+
+# ------DELETE (DELETE)------------
+@app.delete(
+    "/viviendas/{vivienda_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["Viviendas"]
+)
+def eliminar_vivienda(vivienda_id: int):
+    vivienda = db.get(vivienda_id)
+    if vivienda is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Vivienda {vivienda_id} no encontrada"
+        )
+
+    del db[vivienda_id]
+
 
 
 # uv run 02_crud_memoria.py
